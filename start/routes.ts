@@ -11,7 +11,7 @@ Route.group(() => {
   Route.post('/professors', 'ProfessorsController.store')
   Route.get('/professors/:matricula', 'ProfessorsController.show')
   Route.put('/professors/editar', 'ProfessorsController.update')
-  Route.delete('/professors/:matricula', 'ProfessorsController.destroy')
+  Route.delete('/professors/excluir-dados', 'ProfessorsController.destroy')
 
   // Rota para criar uma sala associada a um professor
   Route.post('/professors/create-sala', 'ProfessorsController.createSala')

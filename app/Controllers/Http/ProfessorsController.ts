@@ -146,7 +146,7 @@ export default class ProfessorsController {
       if (error.code === 'E_ROW_NOT_FOUND') {
         return 'Professor não encontrado'
       }
-      return 'Erro ao excluir o usuário'
+      return 'Erro ao excluir o professor'
     }
 
   }
