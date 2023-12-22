@@ -3,7 +3,6 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Professor from 'App/Models/Professor'
 import Sala from 'App/Models/Sala'
 import { DateTime } from 'luxon';
-import Database from '@ioc:Adonis/Lucid/Database'
 
 export default class ProfessorsController {
   public async index({}: HttpContextContract) {
@@ -108,46 +107,70 @@ export default class ProfessorsController {
     }
   }
 
+  public async update({ request }: HttpContextContract) {
+    try {
+      const matricula = request.input('matricula')
+      const user = await Professor.findByOrFail('matricula', matricula)
+      const corpoReq = request.only(['nome', 'email', 'data_nascimento', 'senha'])
+
+      user.merge(corpoReq)
+      await user.save()
+
+      return user
+    } catch (error) {
+      return 'Erro ao atualizar o usuário'
+    }
+  }
+
   public async destroy({ request }: HttpContextContract) {
+    try {
+      const matricula = request.input('matricula')
+      const user = await Professor.findByOrFail('matricula', matricula)
+      await user.delete()
+
+      return 'Usuário excluído com sucesso'
+    } catch (error) {
+      if (error.code === 'E_ROW_NOT_FOUND') {
+        return 'Usuário não encontrado'
+      }
+
+      return 'Erro ao excluir o usuário'
+    }
+  }
+
+  public async consultarPorMatriculaProfessor({ request }: HttpContextContract) {
     try {
       // Obtém a matrícula do corpo da requisição
       const matricula = request.input('matricula')
 
-      // Busca o professor pelo número da matrícula
-      const professor = await Professor.findByOrFail('matricula', matricula)
+      // Busca o professor pelo número da matrícula com as salas relacionadas carregadas
+      const professor = await Professor.query().where('matricula', matricula).preload('salas').firstOrFail()
 
-      // Busca todas as salas em que o professor está inscrito
-      const salas = await professor.related('salas').query()
-
-      // Remover o professor de cada sala
-      await Promise.all(
-        salas.map(async (sala) => {
-          // Encontrar a associação específica do professor na sala através da tabela pivot
-          const professorSala = await Database.from('professor_sala')
-            .where('sala_id', sala.id)
-            .where('professor_id', professor.id)
-            .first()
-
-          // Remover a associação na tabela pivot
-          if (professorSala) {
-            await Database.from('professor_sala').where('id', professorSala.id).delete()
-          }
-
-          await sala.save()
-        })
-      )
-
-      // Excluir o professor
-      await professor.delete()
-
-      return 'Professor excluído com sucesso'
+      // Retorna os dados do professor incluindo as informações das salas
+      return {
+        id: professor.id,
+        matricula: professor.matricula,
+        tipo_usuario: professor.tipo_usuario,
+        nome: professor.nome,
+        email: professor.email,
+        data_nascimento: professor.data_nascimento,
+        created_at: professor.createdAt,
+        updated_at: professor.updatedAt,
+        salas: professor.salas.map((sala) => ({
+          numero_sala: sala.numero_sala,
+          capacidade_alunos: sala.capacidade_alunos,
+          alunos_inscritos: sala.alunos_inscritos,
+          disponibilidade: sala.disponibilidade,
+        })),
+      }
     } catch (error) {
       // Se ocorrer um erro, verifica se é devido ao professor não ser encontrado
       if (error.code === 'E_ROW_NOT_FOUND') {
         return 'Professor não encontrado'
       }
-      return 'Erro ao excluir o professor'
-    }
 
+      // Outro erro desconhecido
+      return 'Erro ao consultar o professor'
+    }
   }
 }

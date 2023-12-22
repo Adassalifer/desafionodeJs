@@ -94,9 +94,6 @@ export default class SalasController {
       return 'Erro ao criar a sala'
     }
   }
-
-
-
     // Método para adicionar alunos à sala
     public async addAlunos({ request }: HttpContextContract) {
       try {
@@ -129,31 +126,50 @@ export default class SalasController {
           return 'Sala indisponível'
         }
 
-        // Divide a string de matriculasAlunos em um array de matrículas
+        // Divide a string de matriculasAlunos em um array de matrículas dos novos alunos
         const matriculasAlunos = matriculaAluno.split(',')
 
-        // Busca os alunos pelos números das matrículas
+        // Busca os novos alunos pelos números das matrículas
         const alunosParaAdicionar = await Aluno.query().whereIn('matricula', matriculasAlunos).exec()
 
-        // Verifica se a quantidade de alunos a serem adicionados não excede a capacidade da sala
-        const capacidadeRestante = sala.capacidade_alunos - (sala.alunos_inscritos || []).length
-        if (alunosParaAdicionar.length > capacidadeRestante) {
-          return 'Quantidade de alunos excede a capacidade disponível da sala'
+        // Verifica a quantidade de alunos antigos
+        const alunosInscritosAntigo = sala.alunos_inscritos;
+
+        // Divide a string pelos caracteres de vírgula e filtra os elementos não vazios
+        const alunosAntigos = alunosInscritosAntigo.split(',').filter(Boolean);
+
+        // Obtém a quantidade de alunos antigos
+        const qAlunosAntigos = alunosAntigos.length
+
+        //Verifica quantos alunos ainda podem ser adicionados
+        const capacidadeRestante = sala.capacidade_alunos - qAlunosAntigos
+
+        if(matriculasAlunos.filter(Boolean).length > capacidadeRestante ){
+
+          return 'Quantidade excede a capacidade da sala.'
+        }else if(matriculasAlunos.filter(Boolean).length == capacidadeRestante){
+
+          sala.merge({ disponibilidade: 'indisponivel' })
+          await sala.save()
+          console.log('Capacidade da sala atingida.')
+
         }
 
-        // Associa a sala aos alunos encontrados
+        // Associa a sala aos alunos encontrados para adicionar
         await sala.related('alunos').attach(alunosParaAdicionar.map((aluno) => aluno.id))
 
         // Crie um array de nomes correspondentes
-      const nomesDosAlunos = alunosParaAdicionar.map(aluno => aluno.nome)
+         const nomesDosAlunos = alunosParaAdicionar.map(aluno => aluno.nome)
 
-      // Junte os nomes com vírgulas para formar uma string
-      const nomesComoString = nomesDosAlunos.join(', ')
+        // Junte os nomes com vírgulas para formar uma string dos alunos para adicionar
+         const nomesComoString = nomesDosAlunos.join(', ')
 
-      sala.merge({ alunos_inscritos: nomesComoString })
+        //Junte o string dos novos e dos antigos alunos
+         const alunosInscritosAtualizado = alunosInscritosAntigo.concat(", " , nomesComoString)
 
-      sala.save
+      sala.merge({ alunos_inscritos: alunosInscritosAtualizado })
 
+        await sala.save()
 
         // Retorna as informações atualizadas da sala
         return {
@@ -161,7 +177,7 @@ export default class SalasController {
           numero_sala: sala.numero_sala,
           capacidade_alunos: sala.capacidade_alunos,
           disponibilidade: sala.disponibilidade,
-          alunos_inscritos: sala.alunos ? sala.alunos.map((aluno) => ({ nome: aluno.nome })) : [],
+          alunos_inscritos: nomesComoString,
           professor_criador: sala.professor_criador,
           created_at: sala.createdAt,
           updated_at: sala.updatedAt,
@@ -173,61 +189,51 @@ export default class SalasController {
     }
     public async obterNomesAlunos({ params }: HttpContextContract) {
       try {
-        // Obtém o número da sala dos parâmetros da requisição
         const numeroSala = params.numero_sala
 
-        // Busca a sala pelo número da sala com a relação de alunos carregada
-        const sala = await Sala.query().preload('alunos').where('numero_sala', numeroSala).firstOrFail()
+        const sala = await Sala.query()
+          .preload('alunos', (query) => query.select(['nome','email','matricula']))
+          .where('numero_sala', numeroSala)
+          .firstOrFail()
 
-        // Obtém os nomes dos alunos
-        const nomesDosAlunos = sala.alunos.map((aluno) => aluno.nome).join(', ')
-
-        // Retorna uma string com os nomes separados por vírgula
-        return nomesDosAlunos
+        return sala.alunos
       } catch (error) {
         console.error(error)
         return 'Erro ao obter nomes dos alunos'
       }
     }
-
-    public async consultarPorMatricula({ request }: HttpContextContract) {
+    public async destroy({ request }: HttpContextContract) {
       try {
-        // Obtém a matrícula do corpo da requisição
-        const matricula = request.input('matricula')
+        // Obtém o n° da sala e a matrícula do corpo da requisição
+        const { numero_sala, matricula } = request.only(['numero_sala', 'matricula']);
 
-        // Busca o aluno pelo número da matrícula
-        const aluno = await Aluno.findByOrFail('matricula', matricula)
+        // Busca o professor pelo número da matrícula
+        const professor = await Professor.findBy('matricula', matricula);
 
-        // Busca as salas em que o aluno está matriculado
-        const salas = await aluno.related('salas').query().preload('professores')
-
-        // Formata a resposta
-        const respostaFormatada = {
-          aluno: {
-            id: aluno.id,
-            matricula: aluno.matricula,
-            tipo_usuario: aluno.tipo_usuario,
-            nome: aluno.nome,
-            email: aluno.email,
-            data_nascimento: aluno.data_nascimento,
-            created_at: aluno.createdAt,
-            updated_at: aluno.updatedAt,
-          },
-          salas: salas.map((sala) => {
-            const professores = sala.professores.map((professor) => professor.nome).join(', ')
-            return `${sala.numero_sala} (Professor : ${professores})`
-          }),
+        // Verifica se o professor foi encontrado
+        if (!professor) {
+          return 'Professor não encontrado';
         }
 
-        return respostaFormatada
+        // Busca a sala pelo número da sala
+        const sala = await Sala.findByOrFail('numero_sala', numero_sala);
+
+        // Verifica se o professor criador corresponde ao da sala
+        if (sala.professor_criador !== professor.nome) {
+          return 'Professor criador não correspondente à sala';
+        }
+
+        // Excluir a sala
+        await sala.delete();
+
+        return 'Sala excluída com sucesso';
       } catch (error) {
-        // Se ocorrer um erro, verifica se é devido ao aluno não ser encontrado
         if (error.code === 'E_ROW_NOT_FOUND') {
-          return 'Aluno não encontrado'
+          return 'Sala não encontrada';
         }
 
         // Outro erro desconhecido
-        return 'Erro ao consultar o aluno'
+        return 'Erro ao excluir a sala';
       }
     }
 }

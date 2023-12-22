@@ -10,19 +10,23 @@ Route.group(() => {
   Route.get('/professors', 'ProfessorsController.index')
   Route.post('/professors', 'ProfessorsController.store')
   Route.get('/professors/:matricula', 'ProfessorsController.show')
-  Route.put('/professors/editar', 'ProfessorsController.update')
-  Route.delete('/professors/excluir-dados', 'ProfessorsController.destroy')
+  Route.put('/professors/editar/:matricula', 'ProfessorsController.update')
+  Route.delete('/professors/:matricula', 'ProfessorsController.destroy')
 
-  // Rota para criar uma sala associada a um professor
-  Route.post('/professors/create-sala', 'ProfessorsController.createSala')
+  //Consultar dados do professor pela matrícula
+  Route.get('/professor/consultar', 'ProfessorsController.consultarPorMatriculaProfessor')
 
-  Route.post('/salas/create-sala', 'SalasController.createSala')
+  //Criar Sala
+  Route.post('/salas/criar', 'SalasController.createSala')
 
   // Rota para adicionar alunos à sala
-  Route.post('/salas/add-alunos', 'AddAlunoSalasController.addAlunos')
+  Route.post('/salas/adicionar-alunos', 'SalasController.addAlunos')
 
   // Rota para remover alunos da sala
   Route.post('/salas/remove-alunos', 'SalasController.removeAlunos')
+
+  //Rota para excluir sala
+  Route.delete('/salas/apagar-dados', 'SalasController.destroy')
 
   //acha aluno pela matricula
 
@@ -39,7 +43,7 @@ Route.group(() => {
   Route.delete('/alunos/:matricula', 'AlunosController.destroy')
 
   // Rota para consultar dados do aluno por matrícula
-Route.get('/consultar-aluno-sala', 'SalasController.consultarPorMatricula')
+Route.get('/aluno/consultar', 'AlunosController.consultarPorMatriculaAluno')
 
 
   // Rotas para Salas
@@ -50,6 +54,6 @@ Route.get('/consultar-aluno-sala', 'SalasController.consultarPorMatricula')
 
 
   // Crie a rota para o método obterNomesAlunos
-Route.get('/salas/:numero_sala/alunos', 'SalasController.obterNomesAlunos')
+Route.get('/consultar-alunos-sala/:numero_sala', 'SalasController.obterNomesAlunos')
 
 })//.middleware(['auth']) // Adicione qualquer middleware necessário, como autenticação

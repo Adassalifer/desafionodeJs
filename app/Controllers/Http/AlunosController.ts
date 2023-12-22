@@ -12,7 +12,7 @@ export default class AlunosController {
     return alunos
   }
 
-  public async consultarPorMatricula({ request }: HttpContextContract) {
+  public async consultarPorMatriculaAluno({ request }: HttpContextContract) {
     try {
       // Obtém a matrícula do corpo da requisição
       const matricula = request.input('matricula')
@@ -20,15 +20,37 @@ export default class AlunosController {
       // Busca o aluno pelo número da matrícula
       const aluno = await Aluno.findByOrFail('matricula', matricula)
 
-      // Busca todas as salas que contêm o aluno na relação 'alunos'
-      const salas = await Sala.query().whereHas('alunos', (query) => {
-        query.where('id', aluno.id)
-      }).preload('alunos').preload('professores')
+      // Busca as salas em que o aluno está matriculado
+      const salas = await aluno.related('salas').query().preload('professores')
 
-      return salas
+      // Formata a resposta
+      const respostaFormatada = {
+        aluno: {
+          id: aluno.id,
+          matricula: aluno.matricula,
+          tipo_usuario: aluno.tipo_usuario,
+          nome: aluno.nome,
+          email: aluno.email,
+          data_nascimento: aluno.data_nascimento,
+          created_at: aluno.createdAt,
+          updated_at: aluno.updatedAt,
+
+        },
+        salas: salas.map((sala) => {
+          const professores = sala.professores.map((professor) => professor.nome).join(', ')
+          return `nº ${sala.numero_sala} (Professor: '${professores}')`
+        }),
+      }
+
+      return respostaFormatada
     } catch (error) {
-      console.error(error)
-      return 'Erro ao consultar salas do aluno'
+      // Se ocorrer um erro, verifica se é devido ao aluno não ser encontrado
+      if (error.code === 'E_ROW_NOT_FOUND') {
+        return 'Aluno não encontrado'
+      }
+
+      // Outro erro desconhecido
+      return 'Erro ao consultar o aluno'
     }
   }
 
@@ -90,14 +112,14 @@ function gerarMatricula(): string {
 
   public async update({ request }: HttpContextContract) {
     try {
+      // Obtém a matrícula do corpo da requisição
+      const matricula = request.input('matricula');
 
-     // Obtém a matrícula do corpo da requisição
-     const matricula = request.input('matricula')
+      // Busca o usuário pelo número da matrícula
+      const aluno = await Aluno.findByOrFail('matricula', matricula);
 
-     // Busca o usuário pelo número da matrícula
-     const aluno = await Aluno.findByOrFail('matricula', matricula)
-
-      const corpoReq = request.only(['nome' , 'email','data_nascimento', 'senha'  ])
+      // Obtém os dados do corpo da requisição
+      const corpoReq = request.only(['nome', 'email', 'data_nascimento', 'senha', 'matricula']);
 
       // Atualiza os campos do usuário com base nos dados da requisição
       aluno.merge(corpoReq);
@@ -105,7 +127,7 @@ function gerarMatricula(): string {
       // Salva as alterações no banco de dados
       await aluno.save();
 
-      return aluno;
+      return aluno.toJSON();
     } catch (error) {
       // Trate os erros aqui, por exemplo, usuário não encontrado
       return 'Erro ao atualizar os dados do aluno';
