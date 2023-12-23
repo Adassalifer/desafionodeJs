@@ -10,64 +10,8 @@ export default class ProfessorsController {
     return professors
   }
 
-  public async createSala({ request }: HttpContextContract) {
-    try {
-      // Criar sala
-      const corpoReq = request.only(['numero_sala', 'professor_criador', 'disponibilidade', 'capacidade_alunos', 'alunos_inscritos', 'matricula'])
-
-
-
-      // Busca o professor pelo número da matrícula
-      const professor = await Professor.findBy('matricula', corpoReq.matricula)
-
-      corpoReq.professor_criador = professor?.nome
-
-
-
-      // Cria a sala sem associar ao professor por enquanto
-      const salaInfo = await Sala.create({
-        numero_sala: corpoReq.numero_sala,
-        capacidade_alunos: corpoReq.capacidade_alunos,
-        professor_criador: corpoReq.professor_criador,
-        disponibilidade: corpoReq.disponibilidade,
-        alunos_inscritos: corpoReq.alunos_inscritos,
-      })
-
-      if (professor) {
-        corpoReq.professor_criador = professor.nome
-      } else {
-        // O professor não foi encontrado, lide com isso conforme necessário
-        await salaInfo.delete()
-        return 'Professor não encontrado'
-      }
-
-
-      // Associa a sala ao professor
-      await professor.related('salas').attach([salaInfo.id])
-
-      // Retorna as informações da sala incluindo o nome do professor
-      return {
-        id: salaInfo.id,
-        numero_sala: salaInfo.numero_sala,
-        capacidade_alunos: salaInfo.capacidade_alunos,
-        disponibilidade: salaInfo.disponibilidade,
-        alunos_inscritos: salaInfo.alunos_inscritos,
-        professor_criador: salaInfo.professor_criador,
-        created_at: salaInfo.createdAt,
-        updated_at: salaInfo.updatedAt,
-      }
-    } catch (error) {
-
-      console.error(error)
-      if (error.code === 'SQLITE_CONSTRAINT') {
-        return 'Número da sala indisponível'
-      }
-
-      return 'Erro ao criar a sala'
-    }
-  }
-
   public async store({ request }: HttpContextContract) {
+    //RF05
     // Função para gerar matrícula a partir da data e hora atuais
   function gerarMatricula(): string {
   const dataHoraAtual = DateTime.local().toFormat('yyyyMMddHHmmss');
@@ -123,6 +67,7 @@ export default class ProfessorsController {
   }
 
   public async destroy({ request }: HttpContextContract) {
+    //RF07
     try {
       const matricula = request.input('matricula')
       const user = await Professor.findByOrFail('matricula', matricula)

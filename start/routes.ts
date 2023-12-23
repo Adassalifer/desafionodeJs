@@ -6,54 +6,77 @@ Route.get('/', async () => {
 })
 
 Route.group(() => {
-  // Rotas para Professores
-  Route.get('/professors', 'ProfessorsController.index')
-  Route.post('/professors', 'ProfessorsController.store')
-  Route.get('/professors/:matricula', 'ProfessorsController.show')
-  Route.put('/professors/editar/:matricula', 'ProfessorsController.update')
-  Route.delete('/professors/:matricula', 'ProfessorsController.destroy')
-
-  //Consultar dados do professor pela matrícula
-  Route.get('/professor/consultar', 'ProfessorsController.consultarPorMatriculaProfessor')
-
-  //Criar Sala
-  Route.post('/salas/criar', 'SalasController.createSala')
-
-  // Rota para adicionar alunos à sala
-  Route.post('/salas/adicionar-alunos', 'SalasController.addAlunos')
-
-  // Rota para remover alunos da sala
-  Route.post('/salas/remove-alunos', 'SalasController.removeAlunos')
-
-  //Rota para excluir sala
-  Route.delete('/salas/apagar-dados', 'SalasController.destroy')
-
-  //acha aluno pela matricula
-
-  Route.post('/acha-aluno-pela-matricula', 'AchaAlunoPelaMatriculasController.findNomesByMatriculas')
-
-
-
 
   // Rotas para Alunos
-  Route.get('/alunos', 'AlunosController.index')
-  Route.post('/alunos', 'AlunosController.store')
-  Route.get('/alunos/:matricula', 'AlunosController.show')
-  Route.put('/alunos/:matricula', 'AlunosController.update')
-  Route.delete('/alunos/:matricula', 'AlunosController.destroy')
+  Route.post('/alunos/cadastro', 'AlunosController.store') //RF01
+  Route.put('/alunos/editar/:matricula', 'AlunosController.update')//RF02
+  Route.delete('/alunos/apagar-dados', 'AlunosController.destroy')//RF03
+  Route.get('/aluno/consultar-dados-por-matricula/:matricula', 'AlunosController.consultarDadosDoAlunoPorMatricula')//RF04
+  Route.get('/alunos', 'AlunosController.index')//indice de alunos
 
-  // Rota para consultar dados do aluno por matrícula
-Route.get('/aluno/consultar', 'AlunosController.consultarPorMatriculaAluno')
+  Route.get('/alunos/:matricula', 'AlunosController.show')//?
+
+
+
+
+
+  // Rota para mostrar o nome, salas e professores do aluno por matrícula
+Route.get('/aluno/consultar-salas-professores-por-matricula/:matricula', 'AlunosController.mostrarNomeSalaProfessorPorMatriculaAluno')
+
+
+
+
+
+
+
+  // Rotas para Professores
+  Route.post('/professors', 'ProfessorsController.store')//RF05
+  Route.put('/professors/editar/:matricula', 'ProfessorsController.update')//RF06
+  Route.delete('/professors/:matricula', 'ProfessorsController.destroy')//RF07
+  Route.get('/professor/consultar', 'ProfessorsController.consultarPorMatriculaProfessor')//RF08
+  Route.get('/professors', 'ProfessorsController.index')//indice do professor
+
+
+
+
+
+
+  //Criar Sala
+  Route.post('/salas/criar', 'SalasController.createSala')//RF09
+
+  Route.post('/salas/editar-capacidade', 'SalasController.editarCapacidade')//RF10
+
+  Route.delete('/salas/apagar-dados', 'SalasController.destroy')//RF11
+
+  Route.get('/salas/consultar-numero-sala/:numero_sala', 'SalasController.obterDadosSala')//RF12
+
+  Route.post('/salas/adicionar-aluno/', 'SalasController.addAlunos')//RF13
+
+  Route.post('/salas/remove-alunos', 'SalasController.removeAlunos')//RF14
+
+  Route.get('/consultar-alunos-sala/:numero_sala', 'SalasController.obterNomesAlunos')//RF15
+
+  //Rota para excluir sala
+
+
+  Route.post('/comparar-matriculas', 'MatriculassController.compararMatriculas')
+
+
+
+
+
 
 
   // Rotas para Salas
   Route.get('/salas', 'SalasController.index')
+
+
   Route.post('/salas', 'SalasController.store')
-  Route.post('/salas/adicionar-aluno', 'SalasController.inscreverAluno')
-  Route.post('/salas/remover-aluno', 'RemoveAlunoSalasController.removerAlunos')
+  //Route.post('/salas/adicionar-aluno', 'SalasController.inscreverAluno')
+  Route.post('/salas/remover-aluno', 'SalasController.removerAlunos')
 
 
   // Crie a rota para o método obterNomesAlunos
-Route.get('/consultar-alunos-sala/:numero_sala', 'SalasController.obterNomesAlunos')
+
 
 })//.middleware(['auth']) // Adicione qualquer middleware necessário, como autenticação

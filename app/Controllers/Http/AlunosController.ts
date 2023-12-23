@@ -12,10 +12,11 @@ export default class AlunosController {
     return alunos
   }
 
-  public async consultarPorMatriculaAluno({ request }: HttpContextContract) {
+  public async mostrarNomeSalaProfessorPorMatriculaAluno({ params }: HttpContextContract) {
+    //RF16
     try {
       // Obtém a matrícula do corpo da requisição
-      const matricula = request.input('matricula')
+      const matricula = params.matricula
 
       // Busca o aluno pelo número da matrícula
       const aluno = await Aluno.findByOrFail('matricula', matricula)
@@ -25,17 +26,8 @@ export default class AlunosController {
 
       // Formata a resposta
       const respostaFormatada = {
-        aluno: {
-          id: aluno.id,
-          matricula: aluno.matricula,
-          tipo_usuario: aluno.tipo_usuario,
-          nome: aluno.nome,
-          email: aluno.email,
-          data_nascimento: aluno.data_nascimento,
-          created_at: aluno.createdAt,
-          updated_at: aluno.updatedAt,
+        nome: aluno.nome,
 
-        },
         salas: salas.map((sala) => {
           const professores = sala.professores.map((professor) => professor.nome).join(', ')
           return `nº ${sala.numero_sala} (Professor: '${professores}')`
@@ -54,15 +46,58 @@ export default class AlunosController {
     }
   }
 
-  public async create({}: HttpContextContract) {}
+  public async consultarDadosDoAlunoPorMatricula({ params }: HttpContextContract) {
+    //RF04
+    try {
+      // Obtém a matrícula do corpo da requisição
+      const matricula = params.matricula
+
+      // Busca o aluno pelo número da matrícula
+      const aluno = await Aluno.findByOrFail('matricula', matricula)
+
+      // Busca as salas em que o aluno está matriculado
+      const salas = await aluno.related('salas').query().preload('professores')
+
+      // Formata a resposta
+      const respostaFormatada = {
+
+
+        aluno:  {
+          id: aluno.id,
+          matricula: aluno.matricula,
+          tipo_usuario: aluno.tipo_usuario,
+          nome: aluno.nome,
+          email: aluno.email,
+          data_nascimento: aluno.data_nascimento,
+          created_at: aluno.createdAt,
+          updated_at: aluno.updatedAt,
+      },
+        salas: salas.map((sala) => {
+          const professores = sala.professores.map((professor) => professor.nome).join(', ')
+          return `nº ${sala.numero_sala} (Professor: '${professores}')`
+        }),
+      }
+
+      return respostaFormatada
+    } catch (error) {
+      // Se ocorrer um erro, verifica se é devido ao aluno não ser encontrado
+      if (error.code === 'E_ROW_NOT_FOUND') {
+        return 'Aluno não encontrado'
+      }
+
+      // Outro erro desconhecido
+      return 'Erro ao consultar o aluno'
+    }
+  }
 
   public async store({request}: HttpContextContract) {
+    //RF01
 
      // Função para gerar matrícula a partir da data e hora atuais
 function gerarMatricula(): string {
-  const dataHoraAtual = DateTime.local().toFormat('yyyyMMddHHmmss');
-  const aleatorio = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `alu${dataHoraAtual}${aleatorio}`;
+  const dataHoraAtual = DateTime.local().toFormat('yyyyMMddHHmmss')
+  const aleatorio = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+  return `alu${dataHoraAtual}${aleatorio}`
 }
     const matricula = gerarMatricula()
 
@@ -107,9 +142,6 @@ function gerarMatricula(): string {
     }
   }
 
-
-  public async edit({}: HttpContextContract) {}
-
   public async update({ request }: HttpContextContract) {
     try {
       // Obtém a matrícula do corpo da requisição
@@ -136,6 +168,7 @@ function gerarMatricula(): string {
 
 
   public async destroy({ request }: HttpContextContract) {
+    //RF03
     try {
       // Obtém a matrícula do corpo da requisição
       const matricula = request.input('matricula')
